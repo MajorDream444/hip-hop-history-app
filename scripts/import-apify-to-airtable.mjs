@@ -21,6 +21,8 @@ const AIRTABLE_FIELDS = {
   leadType: "fldB1ifz6ztAte3Rq",
   opportunityType: "fld5yIoyzByYXAYkG",
   rawSourceJson: "fldzd09HgyqzkCunp",
+  transcript: "fldG1SMq8uwuRdB1z",
+  thumbnailUrl: "fldh9hlkQxTPRM08V",
 };
 
 const PAGE_LIMIT = 1000;
@@ -94,12 +96,21 @@ function asNumber(value) {
 function normalizeRecord(record) {
   const name = asText(firstNonEmpty(record, ["title", "videoTitle", "name"]));
   const description = asText(record.description);
-  const transcript = asText(firstNonEmpty(record, ["transcript", "captions", "subtitles"]));
+  const transcript = sanitizeLongText(
+    asText(firstNonEmpty(record, ["transcript", "transcriptText", "captions", "subtitles"])),
+    9000,
+  );
   const notes = sanitizeLongText([description, transcript].filter(Boolean).join("\n\n"), 9000);
   const channelUrl = asText(
     firstNonEmpty(record, ["channelUrl", "ownerChannelUrl", "authorUrl"]),
   );
   const videoUrl = asText(firstNonEmpty(record, ["videoUrl", "url", "watchUrl", "link"]));
+  const thumbnailUrl =
+    asText(firstNonEmpty(record, ["coverImage", "thumbnail", "thumbnailUrl", "thumbnailURL"])) ??
+    asText(record.thumbnails?.[0]?.url) ??
+    asText(record.thumbnails?.default?.url) ??
+    asText(record.thumbnails?.high?.url) ??
+    asText(record.thumbnails?.medium?.url);
   const youtubeHandle = asText(
     firstNonEmpty(record, ["handle", "channelHandle", "author", "channelName"]),
   );
@@ -114,6 +125,8 @@ function normalizeRecord(record) {
     [AIRTABLE_FIELDS.status]: "Todo",
     [AIRTABLE_FIELDS.channelUrl]: channelUrl,
     [AIRTABLE_FIELDS.videoUrl]: videoUrl,
+    [AIRTABLE_FIELDS.transcript]: transcript,
+    [AIRTABLE_FIELDS.thumbnailUrl]: thumbnailUrl,
     [AIRTABLE_FIELDS.youtubeHandle]: youtubeHandle,
     [AIRTABLE_FIELDS.subscriberCount]: subscriberCount,
     [AIRTABLE_FIELDS.viewCount]: viewCount,
