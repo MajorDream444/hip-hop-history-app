@@ -65,6 +65,18 @@ function asText(value) {
   return text.length > 0 ? text : undefined;
 }
 
+function sanitizeLongText(value, maxLength = 9000) {
+  if (value === undefined || value === null) return undefined;
+
+  const text = String(value)
+    .replace(/\u0000/g, "")
+    .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim();
+
+  if (!text) return undefined;
+  return text.slice(0, maxLength);
+}
+
 function asNumber(value) {
   if (value === undefined || value === null || value === "") {
     return undefined;
@@ -83,7 +95,7 @@ function normalizeRecord(record) {
   const name = asText(firstNonEmpty(record, ["title", "videoTitle", "name"]));
   const description = asText(record.description);
   const transcript = asText(firstNonEmpty(record, ["transcript", "captions", "subtitles"]));
-  const notes = [description, transcript].filter(Boolean).join("\n\n");
+  const notes = sanitizeLongText([description, transcript].filter(Boolean).join("\n\n"), 9000);
   const channelUrl = asText(
     firstNonEmpty(record, ["channelUrl", "ownerChannelUrl", "authorUrl"]),
   );
@@ -108,7 +120,7 @@ function normalizeRecord(record) {
     [AIRTABLE_FIELDS.niche]: "Hip Hop",
     [AIRTABLE_FIELDS.leadType]: "Hip Hop Quiz Source",
     [AIRTABLE_FIELDS.opportunityType]: "App Research",
-    [AIRTABLE_FIELDS.rawSourceJson]: JSON.stringify(record),
+    [AIRTABLE_FIELDS.rawSourceJson]: sanitizeLongText(JSON.stringify(record), 90000),
   };
 }
 
@@ -234,7 +246,16 @@ async function importBatch(batch, stats) {
     console.log(`records imported: ${stats.imported}`);
   } catch (error) {
     stats.failedBatches += 1;
+    const recordNames = batch
+      .map((record) => sanitizeLongText(record.fields?.[AIRTABLE_FIELDS.name], 160))
+      .filter(Boolean);
+
     console.error(`failed batch ${stats.failedBatches}: ${error.message}`);
+    console.error(
+      `failed batch ${stats.failedBatches} record names: ${
+        recordNames.length > 0 ? recordNames.join(" | ") : "unknown"
+      }`,
+    );
   }
 }
 
