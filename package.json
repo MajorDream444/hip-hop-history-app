@@ -1,5 +1,7 @@
 {
-  "name": "hiphop-airtable-importer",
+  "name": "hip-hop-history-app",
+  "displayName": "Hip Hop History App",
+  "description": "Apify to Airtable importer pipeline for the Hip Hop History App.",
   "version": "1.0.0",
   "private": true,
   "type": "module",
